@@ -55,9 +55,7 @@ func (s *Stack) Pop() interface{} {
 func (s *Stack) Print(w io.Writer) {
 	tempStack := *s
 
-	for {
-		if tempStack.Len() > 0 {
-			w.Write(s.Pop().([]byte))
-		}
+	for tempStack.Len() > 0 {
+		w.Write(s.Pop().([]byte))
 	}
 }

@@ -7,12 +7,16 @@ import (
 	"github.com/avalchev94/boolean-evaluator/stack"
 )
 
-// Evaluator keeps the needed data for evaluating
+// Evaluator is a struct for boolean evaluation. Parameters is a map that keeps
+// all found variables. All keys are set to false by default. Change to effect
+// the evaluation.
 type Evaluator struct {
 	Parameters map[parameter]bool
 	expression string
 }
 
+// New creates evaluator. Beware that your expression might not be valid, but
+// new still will work. However, later the evaluation might fail.
 func New(expression string) (*Evaluator, error) {
 	parameters := make(map[parameter]bool)
 
@@ -31,66 +35,59 @@ func New(expression string) (*Evaluator, error) {
 	return &Evaluator{parameters, expression}, nil
 }
 
-func (this *Evaluator) Evaluate() (bool, error) {
+// Evaluate the expression using the Parameters map. If the expression is not valid,
+// a verbose errors are returned.
+func (e *Evaluator) Evaluate() (bool, error) {
 	parameters := stack.New()
 	operators := stack.New()
 
-	reader := strings.NewReader(this.expression)
+	reader := strings.NewReader(e.expression)
 	for reader.Len() > 0 {
 		r, i, err := reader.ReadRune()
 		if err != nil {
 			return false, fmt.Errorf("failed to read next rune")
 		}
 
-		if op := readOperator(r); op != nil {
+		if op, err := readOperator(r); err == nil {
 			switch {
-			case op.equal(not):
-				b, err := op.calculate(parameters)
-				if err != nil {
-					return false, fmt.Errorf("Error on column %d: %s", i, err.Error())
-				}
-				parameters.Push(b)
-
 			case op.equal(and) || op.equal(or):
 				if operators.Len() > 0 {
-					prevOp := operators.Top().(*operator)
+					prevOp := operators.Top().(operator)
 					if !prevOp.equal(leftBracket) && !op.greater(prevOp) {
-						b, err := operators.Pop().(*operator).calculate(parameters)
-						if err != nil {
+						if err := operators.Pop().(operator).calculate(parameters); err != nil {
 							return false, fmt.Errorf("Error on column %d: %s", i, err.Error())
 						}
-						parameters.Push(b)
 					}
 				}
 				operators.Push(op)
 
-			case op.equal(leftBracket):
+			case op.equal(leftBracket) || op.equal(not):
 				operators.Push(op)
 			case op.equal(rightBracket):
-				for operators.Top().(*operator) != leftBracket && operators.Len() > 0 {
-					b, err := operators.Pop().(*operator).calculate(parameters)
-					if err != nil {
+				for operators.Len() > 0 && !operators.Top().(operator).equal(leftBracket) {
+					if err := operators.Pop().(operator).calculate(parameters); err != nil {
 						return false, fmt.Errorf("Error on column %d: %s", i, err.Error())
 					}
-					parameters.Push(b)
 				}
 
-				if operators.Top().(*operator) != leftBracket {
-					return false, fmt.Errorf("Brackets mismatch on column %d.", i)
+				if !operators.Top().(operator).equal(leftBracket) {
+					return false, fmt.Errorf("Error on column %d: brackets mismatch", i)
 				}
 				operators.Pop()
 			}
 		} else if param, err := readParameter(r, reader); err == nil {
-			parameters.Push(this.Parameters[param])
+			parameters.Push(e.Parameters[param])
 		}
 	}
 
 	for operators.Len() > 0 {
-		b, err := operators.Pop().(*operator).calculate(parameters)
-		if err != nil {
+		if err := operators.Pop().(operator).calculate(parameters); err != nil {
 			return false, fmt.Errorf("Parsing failed with error: %s", err.Error())
 		}
-		parameters.Push(b)
+	}
+
+	if parameters.Len() != 1 {
+		return false, fmt.Errorf("Parsing failed. Missing operator?")
 	}
 
 	return parameters.Pop().(bool), nil
