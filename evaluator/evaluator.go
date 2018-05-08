@@ -17,6 +17,9 @@ type Evaluator struct {
 // New creates Evaluator. Beware that New makes only basic validations.
 // Evaluation could fail later with better error.
 func New(expression string) (*Evaluator, error) {
+	if len(expression) < 1 {
+		return nil, fmt.Errorf("expression should have, at least, len 1")
+	}
 	parameters := make(map[string]bool)
 	brackets := 0
 
