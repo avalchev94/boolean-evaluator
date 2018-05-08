@@ -1,9 +1,5 @@
 package stack
 
-import (
-	"io"
-)
-
 // Stack is a LIFO data structure, i.e. Last In First Out
 type Stack struct {
 	top    *node
@@ -25,6 +21,10 @@ func New() *Stack {
 
 // Top peeks the value of the last added value in the stack
 func (s *Stack) Top() interface{} {
+	if s.Empty() {
+		return nil
+	}
+
 	return s.top.value
 }
 
@@ -51,11 +51,7 @@ func (s *Stack) Pop() interface{} {
 	return popped
 }
 
-// Print writes the stack data without poping the elements.
-func (s *Stack) Print(w io.Writer) {
-	tempStack := *s
-
-	for tempStack.Len() > 0 {
-		w.Write(s.Pop().([]byte))
-	}
+// Empty returns true if stack has no elements.
+func (s *Stack) Empty() bool {
+	return s.length <= 0
 }

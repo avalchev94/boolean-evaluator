@@ -11,6 +11,10 @@ func Test(t *testing.T) {
 		t.Errorf("Length of an empty stack should be 0")
 	}
 
+	if s.Top() != nil {
+		t.Errorf("Top should be nil.")
+	}
+
 	s.Push(1)
 
 	if s.Len() != 1 {
@@ -39,4 +43,5 @@ func Test(t *testing.T) {
 	if s.Top().(int) != 2 {
 		t.Errorf("Top of the stack should be 2")
 	}
+
 }
